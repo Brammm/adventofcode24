@@ -14,28 +14,59 @@ pub mod day2 {
             .collect();
 
         println!("Total valid reports is: {}", count_valid_reports(&reports));
+        println!("Total kinda valid reports is: {}", count_kinda_valid_reports(&reports));
     }
 
     fn count_valid_reports(reports: &Vec<Vec<i32>>) -> i32 {
-        reports
-            .iter()
-            .filter(|data| {
-                (is_decreasing(&data) || is_increasing(&data)) && is_within_limits(&data)
-            })
-            .count() as i32
+        reports.iter().filter(|data| is_safe(data, 0)).count() as i32
     }
 
-    fn is_decreasing(data: &Vec<i32>) -> bool {
-        data.windows(2).all(|pair| pair[0] > pair[1])
+    fn count_kinda_valid_reports(reports: &Vec<Vec<i32>>) -> i32 {
+        reports.iter().filter(|data| is_safe(data, 1)).count() as i32
     }
 
-    fn is_increasing(data: &Vec<i32>) -> bool {
-        data.windows(2).all(|pair| pair[0] < pair[1])
+    fn is_safe(data: &Vec<i32>, tolerance: i32) -> bool {
+        let pairs = data.len() - (1 + tolerance as usize);
+        let decreasing_count = get_decreasing_pairs_count(data);
+        let increasing_count = get_increasing_pairs_count(data);
+
+        (decreasing_count >= pairs || increasing_count >= pairs) && is_within_limits(data, tolerance)
     }
 
-    fn is_within_limits(data: &Vec<i32>) -> bool {
-        data.windows(2)
-            .all(|pair| (1..=3).contains(&(pair[0] - pair[1]).abs()))
+    fn get_decreasing_pairs_count(data: &Vec<i32>) -> usize {
+        data.windows(2).filter(|pair| pair[0] > pair[1]).count()
+    }
+
+    fn get_increasing_pairs_count(data: &Vec<i32>) -> usize {
+        data.windows(2).filter(|pair| pair[0] < pair[1]).count()
+    }
+
+    fn is_within_limits(data: &Vec<i32>, tolerance: i32) -> bool {
+        // piets eerste element van den array (als da faalt bv array niet lang genoeg, return false)
+        if let Some((first, rest)) = data.split_first() {
+            let mut previous = first;
+            let mut error_count = 0;
+    
+            // loop over de rest van de items, vergelijkend met "previous", eerste loop dus eerste element
+            for value in rest {
+                let diff = (value - previous).abs(); // bereken absolute verschil
+    
+                if ![1, 2, 3].contains(&diff) { // difference is kleiner dan 1, groter dan 3
+                    if error_count == tolerance { // als we aan onze tolerance zitten, false
+                        return false;
+                    } else {
+                        error_count += 1; // nog niet aan onze tolerance, verhoog error count en vergelijk met volgend nummer
+                        continue;
+                    }
+                }
+    
+                previous = value; // boel is nog geldig dus overwrite previous
+            }
+    
+            return true;
+        }
+    
+        false
     }
 
     #[cfg(test)]
@@ -52,12 +83,12 @@ pub mod day2 {
         ];
 
         #[test]
-        fn test_is_decreasing() {
-            let expected = vec![true, false, true, false, false, false];
-
+        fn test_is_perfectly_safe() {
+            let expected = vec![true, false, false, false, false, true];
+        
             for (index, expected) in expected.iter().enumerate() {
                 assert_eq!(
-                    is_decreasing(&TEST_DATA[index].to_vec()),
+                    is_safe(&TEST_DATA[index].to_vec(), 0),
                     *expected,
                     "testing iteration {}",
                     index
@@ -66,26 +97,12 @@ pub mod day2 {
         }
 
         #[test]
-        fn test_is_increasing() {
-            let expected = vec![false, true, false, false, false, true];
+        fn test_is_kinda_safe() {
+            let expected = vec![true, false, false, true, true, true];
 
             for (index, expected) in expected.iter().enumerate() {
                 assert_eq!(
-                    is_increasing(&TEST_DATA[index].to_vec()),
-                    *expected,
-                    "testing iteration {}",
-                    index
-                );
-            }
-        }
-
-        #[test]
-        fn test_is_within_limits() {
-            let expected = vec![true, false, false, true, false, true];
-
-            for (index, expected) in expected.iter().enumerate() {
-                assert_eq!(
-                    is_within_limits(&TEST_DATA[index].to_vec()),
+                    is_safe(&TEST_DATA[index].to_vec(), 1),
                     *expected,
                     "testing iteration {}",
                     index
