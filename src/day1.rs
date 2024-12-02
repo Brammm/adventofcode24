@@ -15,16 +15,35 @@ pub mod day1 {
             }
         }
         
+        println!("Total distance is: {}", total_distance(&left, &right));
+        println!("Similarity score is: {}", similarity_score(&left, &right));
+    }
+    
+    fn total_distance(left: &Vec<i32>, right: &Vec<i32>) -> i32 {
+        let mut left = left.to_vec();
+        let mut right = right.to_vec();
+        
         left.sort();
         right.sort();
-        
+
         let mut total_distance: i32 = 0;
-        
+
         for (i, left_val) in left.iter().enumerate() {
             let right_val = right[i];
             total_distance = total_distance + (left_val - right_val).abs();
         }
         
-        println!("Total distance is: {}", total_distance);
+        total_distance
+    }
+    
+    fn similarity_score(left: &Vec<i32>, right: &Vec<i32>) -> i32 {
+        let mut similarity_score: i32 = 0;
+        
+        for left_val in left {
+            let occurrence = right.iter().filter(|&&x| x == *left_val).count() as i32;
+            similarity_score = similarity_score + left_val * occurrence;
+        }
+        
+        similarity_score
     }
 }
